@@ -58,6 +58,17 @@ export interface MemoryEntry {
 export type MemoryLayer = 'L0' | 'L1' | 'L2'
 export type MemorySource = 'agent' | 'system' | 'user'
 
+// === Copilot Threads ===
+
+export interface CopilotThread {
+  id: string
+  sessionId: string
+  taskId: string | null
+  title: string
+  createdAt: string
+  isActive: boolean
+}
+
 // === Project ===
 
 export interface Project {
@@ -190,6 +201,14 @@ export interface AideAPI {
   system: {
     health(): Promise<{ sdk: 'initializing' | 'ready' | 'error'; sdkError: string | null }>
   }
+  threads: {
+    create(options?: { taskId?: string; title?: string }): Promise<CopilotThread>
+    list(): Promise<CopilotThread[]>
+    focus(threadId: string): Promise<boolean>
+    close(threadId: string): Promise<boolean>
+    updateTitle(threadId: string, title: string): Promise<void>
+    getContext(): Promise<{ threadId: string; sessionId: string; taskId: string | null; title: string } | null>
+  }
 }
 
 // === Input Types ===
@@ -299,3 +318,6 @@ export type AideEvent =
   | { type: 'job:completed'; jobId: string; summary: string }
   | { type: 'connection:status'; connections: ConnectionStatus[] }
   | { type: 'connection:auth-progress'; connectionType: string; userCode: string; verificationUri: string }
+  | { type: 'thread:created'; thread: CopilotThread }
+  | { type: 'thread:closed'; threadId: string }
+  | { type: 'thread:updated'; thread: CopilotThread }

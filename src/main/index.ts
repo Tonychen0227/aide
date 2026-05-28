@@ -8,6 +8,7 @@ import { createClient } from './agent/client'
 import { initMcpServers, stopAllMcpServers } from './agent/mcp'
 import { initConnectionState } from './connections'
 import { setSdkHealth } from './health'
+import { setMainWindow, closeAllThreads } from './threads'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -72,7 +73,11 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     mainWindow = null
+    setMainWindow(null)
   })
+
+  // Set the main window reference for thread manager
+  setMainWindow(mainWindow)
 }
 
 app.whenReady().then(async () => {
@@ -123,6 +128,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  closeAllThreads()
   stopAllJobs()
   stopAllMcpServers()
   closeDb()

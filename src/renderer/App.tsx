@@ -4,12 +4,29 @@ import { ChatPanel } from './components/ChatPanel'
 import { DashboardView } from './components/DashboardView'
 import { SettingsDrawer } from './components/SettingsDrawer'
 import { OnboardingWizard } from './components/OnboardingWizard'
+import { ThreadChat } from './components/ThreadChat'
 import { useTaskStore } from './stores/taskStore'
 import { useChatStore } from './stores/chatStore'
 import { useSettingsStore } from './stores/settingsStore'
 import type { AideEvent } from '@shared/types'
 
+// Check if this is a thread window by looking at the URL or process args
+function isThreadWindow(): boolean {
+  // Check if window has thread-id in additional arguments
+  const args = (window as unknown as { process?: { argv?: string[] } }).process?.argv || []
+  return args.some(arg => arg.startsWith('--thread-id='))
+}
+
 export default function App() {
+  // If this is a thread window, render ThreadChat directly
+  if (isThreadWindow()) {
+    return <ThreadChat />
+  }
+
+  return <MainApp />
+}
+
+function MainApp() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null)
   const fetchTasks = useTaskStore(s => s.fetchTasks)
   const { appendStreamDelta, endStream, fetchHistory, addMessage, addPendingAction } = useChatStore()

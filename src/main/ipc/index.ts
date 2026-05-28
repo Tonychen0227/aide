@@ -8,6 +8,7 @@ import { listProjects, getProject, createProject, updateProject, deleteProject }
 import { listRelations, getRelation, createRelation, updateRelation, deleteRelation } from '../relations'
 import { getPreferences, setPreferences } from '../preferences'
 import { sdkHealth, sdkError } from '../health'
+import { createThreadWindow, listThreads, focusThread, closeThread, updateThreadTitle, getThreadContext } from '../threads'
 
 export function registerIpcHandlers(): void {
   // === Tasks ===
@@ -83,4 +84,12 @@ export function registerIpcHandlers(): void {
 
   // === System health ===
   ipcMain.handle('system:health', () => ({ sdk: sdkHealth, sdkError }))
+
+  // === Threads ===
+  ipcMain.handle('threads:create', (_, options) => createThreadWindow(options || {}))
+  ipcMain.handle('threads:list', () => listThreads())
+  ipcMain.handle('threads:focus', (_, threadId) => focusThread(threadId))
+  ipcMain.handle('threads:close', (_, threadId) => closeThread(threadId))
+  ipcMain.handle('threads:updateTitle', (_, threadId, title) => updateThreadTitle(threadId, title))
+  ipcMain.handle('threads:getContextById', (_, threadId) => getThreadContext(threadId))
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { ArrowUp, ChevronLeft, Check, X, Pencil, ChevronDown, Paperclip, Copy, CheckCheck, Square } from 'lucide-react'
+import { ArrowUp, ChevronLeft, Check, X, Pencil, ChevronDown, Paperclip, Copy, CheckCheck, Square, MessageSquarePlus } from 'lucide-react'
 import { useTaskStore } from '../stores/taskStore'
 import { useChatStore } from '../stores/chatStore'
 import type { ChatMessage, PendingAction, ModelInfo } from '@shared/types'
@@ -124,11 +124,20 @@ export function ChatPanel() {
         <TaskHeader task={selectedTask} onBack={() => goHome()} />
       ) : (
         <header className="shrink-0">
-          <div className="h-[52px] flex items-center gap-2 px-5 drag-region">
-            <button onClick={() => goHome()} className="w-7 h-7 rounded-md flex items-center justify-center text-text-tertiary hover:text-text-secondary hover:bg-surface-2 transition-colors no-drag" title="返回">
-              <ChevronLeft size={16} strokeWidth={2} />
+          <div className="h-[52px] flex items-center justify-between px-5 drag-region">
+            <div className="flex items-center gap-2">
+              <button onClick={() => goHome()} className="w-7 h-7 rounded-md flex items-center justify-center text-text-tertiary hover:text-text-secondary hover:bg-surface-2 transition-colors no-drag" title="返回">
+                <ChevronLeft size={16} strokeWidth={2} />
+              </button>
+              <span className="text-[13px] font-medium text-text-secondary no-drag">Aide</span>
+            </div>
+            <button 
+              onClick={() => window.aide.threads.create({ title: 'New Thread' })}
+              className="w-7 h-7 rounded-md flex items-center justify-center text-text-tertiary hover:text-accent hover:bg-surface-2 transition-colors no-drag"
+              title="New Thread"
+            >
+              <MessageSquarePlus size={16} strokeWidth={2} />
             </button>
-            <span className="text-[13px] font-medium text-text-secondary no-drag">Aide</span>
           </div>
           <div className="h-px bg-edge" />
         </header>

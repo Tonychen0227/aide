@@ -153,6 +153,15 @@ function initSchema(db: DatabaseInstance): void {
       FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
     );
 
+    CREATE TABLE IF NOT EXISTS copilot_threads (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      task_id TEXT,
+      title TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
     CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
@@ -161,6 +170,7 @@ function initSchema(db: DatabaseInstance): void {
     CREATE INDEX IF NOT EXISTS idx_memory_project ON memory_entries(project_id);
     CREATE INDEX IF NOT EXISTS idx_chat_task ON chat_messages(task_id);
     CREATE INDEX IF NOT EXISTS idx_chat_timestamp ON chat_messages(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_threads_task ON copilot_threads(task_id);
   `)
 
   // Seed default jobs if empty
