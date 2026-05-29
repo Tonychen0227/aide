@@ -73,16 +73,7 @@ const api: AideAPI = {
     focus: (threadId) => ipcRenderer.invoke('threads:focus', threadId),
     close: (threadId) => ipcRenderer.invoke('threads:close', threadId),
     updateTitle: (threadId, title) => ipcRenderer.invoke('threads:updateTitle', threadId, title),
-    getContext: () => {
-      // Get thread ID from process argv (passed via additionalArguments)
-      const args = process.argv || []
-      const threadIdArg = args.find(a => a.startsWith('--thread-id='))
-      if (!threadIdArg) return Promise.resolve(null)
-      
-      const threadId = threadIdArg.replace('--thread-id=', '')
-      // Return a simple context object - the thread manager will have the full context
-      return ipcRenderer.invoke('threads:getContextById', threadId)
-    }
+    getContext: (threadId) => ipcRenderer.invoke('threads:getContextById', threadId)
   }
 }
 

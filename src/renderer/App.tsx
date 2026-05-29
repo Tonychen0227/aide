@@ -10,11 +10,15 @@ import { useChatStore } from './stores/chatStore'
 import { useSettingsStore } from './stores/settingsStore'
 import type { AideEvent } from '@shared/types'
 
-// Check if this is a thread window by looking at the URL or process args
+// Check if this is a thread window by looking at the URL query param
 function isThreadWindow(): boolean {
-  // Check if window has thread-id in additional arguments
-  const args = (window as unknown as { process?: { argv?: string[] } }).process?.argv || []
-  return args.some(arg => arg.startsWith('--thread-id='))
+  const params = new URLSearchParams(window.location.search)
+  return params.has('thread')
+}
+
+function getThreadId(): string | null {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('thread')
 }
 
 export default function App() {

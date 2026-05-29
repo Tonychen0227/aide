@@ -29,22 +29,51 @@ export function ThreadChat() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [input, setInput] = useState('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Get thread ID from URL immediately
+  const threadId = new URLSearchParams(window.location.search).get('thread')
+
   // Load thread context on mount
   useEffect(() => {
-    window.aide.threads.getContext().then((ctx) => {
-      if (ctx) {
-        setContext(ctx)
-        // Load chat history for this thread's task if available
-        if (ctx.taskId) {
-          window.aide.chat.getHistory(ctx.taskId).then(setMessages)
+    if (!threadId) {
+      setLoadError('No thread ID in URL')
+      return
+    }
+
+    // Try to load context with retry
+    const loadContext = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const ctx = await window.aide.threads.getContext(threadId)
+          if (ctx) {
+            setContext(ctx)
+            if (ctx.taskId) {
+              const history = await window.aide.chat.getHistory(ctx.taskId)
+              setMessages(history)
+            }
+            return
+          }
+        } catch (err) {
+          console.error('[ThreadChat] Error loading context:', err)
         }
+        // Wait before retry
+        await new Promise(r => setTimeout(r, 200))
       }
-    })
-  }, [])
+      // If still no context, create a minimal one
+      setContext({
+        threadId,
+        sessionId: `thread-${threadId}`,
+        taskId: null,
+        title: 'New Thread'
+      })
+    }
+
+    loadContext()
+  }, [threadId])
 
   // Subscribe to events
   useEffect(() => {
@@ -130,8 +159,8 @@ export function ThreadChat() {
   }, [])
 
   const handleClose = () => {
-    if (context) {
-      window.aide.threads.close(context.threadId)
+    if (threadId) {
+      window.aide.threads.close(threadId)
     }
   }
 
@@ -139,10 +168,22 @@ export function ThreadChat() {
     window.aide.chat.stopStream()
   }
 
+  if (loadError) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-surface-0 text-red-400 p-4">
+        <div className="mb-2">Error: {loadError}</div>
+        <div className="text-xs text-text-tertiary">URL: {window.location.href}</div>
+        <div className="text-xs text-text-tertiary">Thread ID: {threadId || 'none'}</div>
+      </div>
+    )
+  }
+
   if (!context) {
     return (
-      <div className="h-screen flex items-center justify-center bg-surface-0 text-text-tertiary">
-        <div className="animate-pulse">Loading thread...</div>
+      <div className="h-screen flex flex-col items-center justify-center bg-surface-0 text-text-tertiary p-4">
+        <div className="animate-pulse mb-2">Loading thread...</div>
+        <div className="text-xs">URL: {window.location.href}</div>
+        <div className="text-xs">Thread ID: {threadId || 'none'}</div>
       </div>
     )
   }

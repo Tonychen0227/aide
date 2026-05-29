@@ -124,7 +124,7 @@ export function ChatPanel() {
         <TaskHeader task={selectedTask} onBack={() => goHome()} />
       ) : (
         <header className="shrink-0">
-          <div className="h-[52px] flex items-center justify-between px-5 drag-region">
+          <div className="h-[52px] flex items-center justify-between pl-5 pr-[150px] drag-region">
             <div className="flex items-center gap-2">
               <button onClick={() => goHome()} className="w-7 h-7 rounded-md flex items-center justify-center text-text-tertiary hover:text-text-secondary hover:bg-surface-2 transition-colors no-drag" title="返回">
                 <ChevronLeft size={16} strokeWidth={2} />
@@ -133,10 +133,10 @@ export function ChatPanel() {
             </div>
             <button 
               onClick={() => window.aide.threads.create({ title: 'New Thread' })}
-              className="w-7 h-7 rounded-md flex items-center justify-center text-text-tertiary hover:text-accent hover:bg-surface-2 transition-colors no-drag"
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-accent/10 text-accent hover:bg-accent/20 transition-colors no-drag"
               title="New Thread"
             >
-              <MessageSquarePlus size={16} strokeWidth={2} />
+              <MessageSquarePlus size={18} strokeWidth={2} />
             </button>
           </div>
           <div className="h-px bg-edge" />

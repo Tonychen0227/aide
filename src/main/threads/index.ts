@@ -75,15 +75,8 @@ export function createThreadWindow(options: {
     }
   })
 
-  // Load renderer with thread mode query param
-  if (process.env.ELECTRON_RENDERER_URL) {
-    win.loadURL(`${process.env.ELECTRON_RENDERER_URL}?thread=${threadId}`)
-  } else {
-    win.loadFile(join(__dirname, '../../renderer/index.html'), {
-      query: { thread: threadId }
-    })
-  }
-
+  // Create thread object and add to map BEFORE loading URL
+  // to avoid race condition with renderer trying to getContext
   const thread: ThreadWindow = {
     id: threadId,
     window: win,
@@ -97,6 +90,15 @@ export function createThreadWindow(options: {
 
   // Save thread to DB for persistence
   saveThreadToDb(thread)
+
+  // Load renderer with thread mode query param
+  if (process.env.ELECTRON_RENDERER_URL) {
+    win.loadURL(`${process.env.ELECTRON_RENDERER_URL}?thread=${threadId}`)
+  } else {
+    win.loadFile(join(__dirname, '../../renderer/index.html'), {
+      query: { thread: threadId }
+    })
+  }
 
   // Notify main window about new thread
   mainWindowRef?.webContents.send('aide:event', {

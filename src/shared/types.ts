@@ -207,7 +207,7 @@ export interface AideAPI {
     focus(threadId: string): Promise<boolean>
     close(threadId: string): Promise<boolean>
     updateTitle(threadId: string, title: string): Promise<void>
-    getContext(): Promise<{ threadId: string; sessionId: string; taskId: string | null; title: string } | null>
+    getContext(threadId: string): Promise<{ threadId: string; sessionId: string; taskId: string | null; title: string } | null>
   }
 }
 
