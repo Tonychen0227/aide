@@ -1,0 +1,8 @@
+{
+  "name": "teams-screenshot",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "webdriverio": "^8.29.0"
+  }
+}
