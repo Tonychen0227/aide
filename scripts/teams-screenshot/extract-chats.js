@@ -1,47 +1,14 @@
 import { remote } from 'webdriverio';
-import { execSync } from 'child_process';
 
 /**
  * Extracts and parses chat messages from Microsoft Teams.
  */
-
-// Bring Teams window to foreground using PowerShell/Win32
-function bringTeamsToForeground() {
-  console.log('Bringing Teams to foreground...');
-  try {
-    execSync(`powershell -Command "
-      Add-Type @'
-      using System;
-      using System.Runtime.InteropServices;
-      public class Win32Focus {
-        [DllImport(\\"user32.dll\\")]
-        public static extern bool SetForegroundWindow(IntPtr hWnd);
-        [DllImport(\\"user32.dll\\")]
-        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-      }
-'@
-      $teams = Get-Process ms-teams -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
-      if ($teams) {
-        [Win32Focus]::ShowWindow($teams.MainWindowHandle, 9)
-        [Win32Focus]::SetForegroundWindow($teams.MainWindowHandle)
-      }
-    "`, { stdio: 'pipe' });
-  } catch (e) {
-    // Ignore errors, we'll try anyway
-  }
-}
 
 async function main() {
   let driver;
   let teamsDriver;
 
   try {
-    // First, bring Teams to foreground
-    bringTeamsToForeground();
-    
-    // Give it a moment to come to front
-    await new Promise(r => setTimeout(r, 500));
-
     console.log('Connecting to WinAppDriver...');
 
     // Connect to desktop root
@@ -67,10 +34,8 @@ async function main() {
     }
     
     const teamsWindow = teamsWindows[0];
-    
-    // Click on the window to ensure it's focused
-    await teamsWindow.click();
-    await new Promise(r => setTimeout(r, 300));
+    const windowTitle = await teamsWindow.getAttribute('Name');
+    console.log(`Found: "${windowTitle}"`);
     
     const windowHandle = await teamsWindow.getAttribute('NativeWindowHandle');
     const hexHandle = '0x' + parseInt(windowHandle).toString(16);
