@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+          - os: ubuntu-latest
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # node-gyp (bundled with @electron/rebuild) imports the stdlib `distutils`
+      # module, which was removed in Python 3.12. The runner default Python is
+      # now 3.12+, so native deps (e.g. bufferutil) fail to rebuild. Pin 3.11,
+      # which still ships distutils.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download Playwright browser
+        run: npx playwright install chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/browsers
+          
+      # The Copilot CLI ships as platform-specific binary packages gated by
+      # os/cpu, so `npm ci` only installs the one matching the build runner.
+      # macOS is packaged for BOTH arm64 and x64, but the runner is arm64 — so
+      # the x64 binary is skipped and the resulting x64 DMG/ZIP can't start the
+      # SDK. Force-install every CLI binary the target archs need.
+      - name: Ensure Copilot CLI binaries for all target archs
+        if: matrix.platform == 'mac'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver=$(node -p "JSON.parse(require('fs').readFileSync('node_modules/@github/copilot/package.json','utf8')).optionalDependencies['@github/copilot-darwin-x64']")
+          echo "Copilot CLI version: $ver"
+          npm install --no-save --force --os=darwin --cpu=x64   "@github/copilot-darwin-x64@${ver}"
+          npm install --no-save --force --os=darwin --cpu=arm64 "@github/copilot-darwin-arm64@${ver}"
+          test -f "node_modules/@github/copilot-darwin-x64/copilot"
+          test -f "node_modules/@github/copilot-darwin-arm64/copilot"
+
+      - name: Build & package (win) with retry
+        if: matrix.platform == 'win'
+        shell: pwsh
+        run: |
+          $maxAttempts = 3
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            Write-Host "Windows package attempt $attempt/$maxAttempts"
+            npm run dist:win
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -eq $maxAttempts) { exit $LASTEXITCODE }
+            Write-Host "Build failed, retrying after transient network backoff..."
+            Start-Sleep -Seconds (15 * $attempt)
+          }
+
+      - name: Build & package (${{ matrix.platform }})
+        if: matrix.platform != 'win'
+        run: npm run dist:${{ matrix.platform }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Skip macOS code-signing when no certificate is configured, so CI
+          # can still produce an (unsigned) build instead of failing.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # --- macOS signing & notarization (optional) -----------------
+          # Add these repo secrets to enable signed + notarized builds:
+          #   CSC_LINK                     base64 of the Developer ID .p12
+          #   CSC_KEY_PASSWORD             password for the .p12
+          #   APPLE_ID                     Apple Developer account email
+          #   APPLE_APP_SPECIFIC_PASSWORD  app-specific password
+          #   APPLE_TEAM_ID                10-char team id
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # --- Windows signing via Azure Trusted Signing (optional) ----
+          # Add these repo secrets to enable Windows signing:
+          #   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aide-${{ matrix.platform }}
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.yml
+            release/*.blockmap
+          if-no-files-found: ignore
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.yml
+            release/*.blockmap
+          draft: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
