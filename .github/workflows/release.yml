@@ -62,7 +62,22 @@ jobs:
           test -f "node_modules/@github/copilot-darwin-x64/copilot"
           test -f "node_modules/@github/copilot-darwin-arm64/copilot"
 
+      - name: Build & package (win) with retry
+        if: matrix.platform == 'win'
+        shell: pwsh
+        run: |
+          $maxAttempts = 3
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            Write-Host "Windows package attempt $attempt/$maxAttempts"
+            npm run dist:win
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -eq $maxAttempts) { exit $LASTEXITCODE }
+            Write-Host "Build failed, retrying after transient network backoff..."
+            Start-Sleep -Seconds (15 * $attempt)
+          }
+
       - name: Build & package (${{ matrix.platform }})
+        if: matrix.platform != 'win'
         run: npm run dist:${{ matrix.platform }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
